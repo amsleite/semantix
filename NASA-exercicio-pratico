@@ -44,7 +44,7 @@ import data.DataCleaner.Log
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-class Hosts_unicos(dataFrame: DataFrame) extends Analyzable {
+class Hosts_unicos(dataFrame: DataFrame)  {
 
   override def analyzeAndGenFile: Unit = {
 
@@ -56,7 +56,7 @@ class Hosts_unicos(dataFrame: DataFrame) extends Analyzable {
 
   }
 
-  override def generatePlotFile: Unit = ???
+
 }
 
 
@@ -72,7 +72,7 @@ import org.apache.spark.sql.DataFrame
 
 
 
-class HTTPStatus(dataFrame: DataFrame) extends Analyzable {
+class HTTPStatus(dataFrame: DataFrame) {
 
   private val file = "result_data/_http_status.json"
   private val destinationFile= "result_data/http_status.json"
@@ -94,7 +94,7 @@ class HTTPStatus(dataFrame: DataFrame) extends Analyzable {
     FileUtil.fullyDelete(new File(file))
   }
 
-  override def generatePlotFile: Unit = ???
+
 }
 
 object HTTPStatus {
@@ -103,16 +103,6 @@ object HTTPStatus {
 
 //3. Os 5 URLs que mais causaram erro 404.
 
-package data.analysis
-
-import org.apache.spark.sql.DataFrame
-
-
-class TopTwentyFive404ResponseCodeHosts(dataFrame: DataFrame) extends Analyzable {
-  override def analyzeAndGenFile: Unit = ???
-
-  override def generatePlotFile: Unit = ???
-} 
 
 //4. Quantidade de erros 404 por dia.
 
@@ -123,7 +113,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 
-class AverageNumberOfDailyRequestsPerHost(dataFrame: DataFrame) extends Analyzable {
+class dailyRequest(dataFrame: DataFrame) extends Analyzable {
 
   override def analyzeAndGenFile: Unit = {
 
@@ -132,12 +122,9 @@ class AverageNumberOfDailyRequestsPerHost(dataFrame: DataFrame) extends Analyzab
                         .groupBy(col("day"))
                         .count()
     val totalReqPerDayDF = dataFrame.groupBy(dayofmonth(col(Log.TIME).alias("day"))).count()
-    val avgDailyReqPerHostDF = totalReqPerDayDF.join(dailyHostDF, totalReqPerDayDF("day") === dailyHostDF("day"))
-                                    .select(totalReqPerDayDF("day"), totalReqPerDayDF("count") / dailyHostDF("count").alias("avg_reqs_per_host_per_day"))
+      }
 
-  }
 
-  override def generatePlotFile: Unit = ???
 }
 
 //5. O total de bytes retornados.
