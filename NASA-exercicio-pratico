@@ -1,1 +1,163 @@
-HTTP​ ​requests
+
+//Maquina criada no Google Cloud Platform https://console.cloud.google.com/dataproc
+//REGEX criado com componente tInputRegExFile - Talend Data Integration
+//Analise de dados realizada com Google DataPrep https://console.cloud.google.com/dataprep
+
+
+from pyspark import SparkContext
+from pyspark import SQLContext
+sc = SparkContext()
+import os
+import sys
+
+
+arquivo_nasa = sc.textFile(os.path.join("/tmp/NASA_access_log_Aug95", "NASA_access_log_Aug95"))
+
+sqlContext = SQLContext(sc)
+exibe_linhas = sqlContext.read.text("/tmp/NASA_access_log_Aug95")
+exibe_linhas.show(n=10, truncate=False)
+
+
+from pyspark.sql.functions import *
+from pyspark.sql import functions as F
+
+nasa_dataframe = exibe_linhas.select(
+	select(regexp_extract('value', r'^([^\s]+\s)', 1).alias('HOST'),
+                          regexp_extract('value', r'^.*\[(\d\d/\w{3}/\d{4}:\d{2}:\d{2}:\d{2} -\d{4})]', 1).alias('TIMESTAMP'),
+                          regexp_extract('value', r'^.*"\w+\s+([^\s]+)\s+HTTP.*"', 1).alias('PATH'),
+                          regexp_extract('value', r'^.*"\s+([^\s]+)', 1).cast('integer').alias('STATUS'),
+                          regexp_extract('value', r'^.*\s+(\d+)$', 1).cast('integer').alias('SIZE'))
+
+
+nasa_dataframe.show(n=10, truncate=False)
+
+
+
+//--------------------
+
+//Questoes 
+//1. Número de hosts únicos.
+
+package data.analysis
+
+import data.DataCleaner.Log
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
+
+class Hosts_unicos(dataFrame: DataFrame) extends Analyzable {
+
+  override def analyzeAndGenFile: Unit = {
+
+
+    dataFrame.select( col(Log.HOST), col(Log.TIME).alias("day"))
+            .distinct()
+            .groupBy("day")
+            .count()
+
+  }
+
+  override def generatePlotFile: Unit = ???
+}
+
+
+//2. O total de erros 404.
+
+package data.analysis
+
+import java.io.File
+
+import data.DataCleaner.Log
+import org.apache.hadoop.fs.FileUtil
+import org.apache.spark.sql.DataFrame
+
+
+
+class HTTPStatus(dataFrame: DataFrame) extends Analyzable {
+
+  private val file = "result_data/_http_status.json"
+  private val destinationFile= "result_data/http_status.json"
+
+  override def analyzeAndGenFile: Unit = {
+
+    FileUtil.fullyDelete(new File(file))
+    FileUtil.fullyDelete(new File(destinationFile))
+
+    dataFrame
+      .groupBy(Log.STATUS)
+      .count()
+      .sort(Log.STATUS)
+      .write
+      .json(file)
+
+    merge(file, destinationFile)
+
+    FileUtil.fullyDelete(new File(file))
+  }
+
+  override def generatePlotFile: Unit = ???
+}
+
+object HTTPStatus {
+  def apply(dataFrame: DataFrame): Unit = new HTTPStatus(dataFrame).analyzeAndGenFile
+}
+
+//3. Os 5 URLs que mais causaram erro 404.
+
+package data.analysis
+
+import org.apache.spark.sql.DataFrame
+
+
+class TopTwentyFive404ResponseCodeHosts(dataFrame: DataFrame) extends Analyzable {
+  override def analyzeAndGenFile: Unit = ???
+
+  override def generatePlotFile: Unit = ???
+} 
+
+//4. Quantidade de erros 404 por dia.
+
+package data.analysis
+
+import data.DataCleaner.Log
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
+
+
+class AverageNumberOfDailyRequestsPerHost(dataFrame: DataFrame) extends Analyzable {
+
+  override def analyzeAndGenFile: Unit = {
+
+    val dailyHostDF = dataFrame.select( col(Log.HOST), col(Log.TIME).alias("day"))
+                        .distinct()
+                        .groupBy(col("day"))
+                        .count()
+    val totalReqPerDayDF = dataFrame.groupBy(dayofmonth(col(Log.TIME).alias("day"))).count()
+    val avgDailyReqPerHostDF = totalReqPerDayDF.join(dailyHostDF, totalReqPerDayDF("day") === dailyHostDF("day"))
+                                    .select(totalReqPerDayDF("day"), totalReqPerDayDF("count") / dailyHostDF("count").alias("avg_reqs_per_host_per_day"))
+
+  }
+
+  override def generatePlotFile: Unit = ???
+}
+
+//5. O total de bytes retornados.
+
+package data.analysis
+
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, FileUtil, Path}
+import org.apache.spark.sql.DataFrame
+
+trait Analyzable {
+    def analyzeAndGenFile: Unit
+    def generatePlotFile: Unit
+    def merge(srcPath: String , dstPath: String): Unit = {
+        val hadoopConfig = new Configuration()
+        val hdfs = FileSystem.get(hadoopConfig)
+        FileUtil.copyMerge(hdfs, new Path(srcPath), hdfs, new Path(dstPath), false, hadoopConfig, null)
+    }
+}
+
+bytes_retornados = access_logs.map(lambda log: log.content_size).cache()
+content_sizes.reduce(lambda a, b : a + b) 
+
