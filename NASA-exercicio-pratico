@@ -1,7 +1,7 @@
 
-//Maquina criada no Google Cloud Platform https://console.cloud.google.com/dataproc
-//REGEX criado com componente tInputRegExFile - Talend Data Integration
-//Analise de dados realizada com Google DataPrep https://console.cloud.google.com/dataprep
+#Maquina criada no Google Cloud Platform https://console.cloud.google.com/dataproc
+#REGEX criado com componente tInputRegExFile - Talend Data Integration
+#Analise de dados realizada com Google DataPrep https://console.cloud.google.com/dataprep
 
 
 from pyspark import SparkContext
